@@ -31,3 +31,7 @@ For another Acumatica instance, ask your agent to create one for the supported b
 ## When something doesn't fit
 
 Let the agent diagnose it before changing the host or reinstalling anything. If the kit needs a fix, have the agent check the [issue tracker](https://github.com/AISI-Dev-Co/acumatica-linux-kit/issues). A useful bug report includes your Linux distro, the setup stage that failed, the relevant error with secrets removed, and what fixed it if you found a fix. That's how the next agent gets past it without asking you.
+
+## Licence
+
+The kit is released under the [MIT License](LICENSE) by [AISI Dev Co](https://github.com/AISI-Dev-Co) and [Igor Warzocha](https://igwar.dev). Acumatica, Windows, and the other tools you install retain their own licences.
