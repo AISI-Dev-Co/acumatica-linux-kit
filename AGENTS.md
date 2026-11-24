@@ -1,5 +1,5 @@
 - For a new clone, load `.agents/skills/setup/SKILL.md` and carry out setup. Report only verified results and blockers that need the user.
-- Use one-shot checks. Never start or watch a development server.
+- Do not add tests. Verify changes with one-shot checks of the actual behaviour. Never start or watch a development server.
 - Keep repo-owned artifacts in tracked development areas, never the repository root.
 - Keep operational knowledge agent-facing and SOP-terse. Write human runbooks only when requested.
 - Do not commit exploratory edits in Acumatica runtime or product source without explicit approval.
