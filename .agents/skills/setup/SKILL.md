@@ -157,6 +157,8 @@ The CIFS view is for the canonical website. Named instances on `D:\AcumaticaInst
 
 ## Development and proof
 
+Use the live check at each handoff to decide whether to proceed. If a check fails, diagnose that boundary before retrying the stack. Do not run maintainer regression suites or the two-build gate as setup steps. Passing those suites does not verify this installation.
+
 - Prepare .NET SDK, the project's target framework developer pack, and compatible MSBuild in Windows. Install Python 3.10+ in Windows for the Acuminator adapter. Use the official [Acuminator runner release](https://github.com/Acumatica/Acuminator/releases), extract the full archive in the guest, and pass `--runner <guest-path>` to `run-acuminator.sh`. Install Node and dependencies only for Modern UI work, using the selected site's requirements.
 - Confirm the canonical URL, installed build and IIS path. Run `acumatica-instance.sh status` and distinguish absent sites from unreachable SQL or IIS. Confirm `AcumaticaERP/App_Data/CodeRepository/` is present when source inspection is needed. Use the selected site's frontend checks, package builder, and Acuminator against a real requested project. Do not publish an invented package to prove setup.
 - For customization work, create a named disposable instance with a supported build and checkpoint before publishing. Do not apply product upgrades or migrate customer data during setup.
