@@ -77,10 +77,18 @@ mount_running() {
 }
 
 mount_stopped() {
-	local current
+	local current vm_state
+	require_host_bin docker
 	require_host_bin mount
 	require_host_bin findmnt
 	require_mount_point
+	# A failed Docker query does not prove that the guest stopped.
+	vm_state="$(docker ps -a --filter "name=^/${VM_CONTAINER}$" --format '{{.State}}')" ||
+		fail "cannot confirm Windows is stopped; refusing a raw NTFS mount"
+	case "$vm_state" in
+		""|created|exited) ;;
+		*) fail "refusing to mount the data disk while Windows container is $vm_state" ;;
+	esac
 	current="$(exact_mount "$VOLUME_ROOT")"
 	if [[ "$current" == ntfs3\ * ]]; then
 		[[ -n "$(exact_mount "$MOUNT_POINT")" ]] || mount_from_fstab "$MOUNT_POINT"
@@ -90,10 +98,6 @@ mount_stopped() {
 	[[ -z "$current" ]] || fail "refusing to replace active Acumatica data backing mount: $current"
 	[[ -z "$(exact_mount "$DATA_ROOT")" ]] || fail "refusing to mount NTFS while the Windows share is active"
 	[[ -f "$DISK_IMAGE" ]] || fail "Acumatica data disk image is missing: $DISK_IMAGE"
-	if [[ "$(docker inspect "$VM_CONTAINER" --format '{{.State.Running}}' 2>/dev/null || true)" == true ]] &&
-		docker exec "$VM_CONTAINER" pgrep -f '[q]emu-system' >/dev/null 2>&1; then
-		fail "refusing to mount the Acumatica data disk while Windows owns it"
-	fi
 	mount_from_fstab "$DISK_IMAGE"
 	[[ -d "$DATA_ROOT/Bin" ]] || fail "mounted NTFS volume does not contain AcumaticaERP"
 	mount_from_fstab "$MOUNT_POINT"
@@ -105,12 +109,15 @@ mount_stopped() {
 
 case "${1:-status}" in
 	mount-running)
+		acquire_environment_lock
 		mount_running
 		;;
 	mount-stopped)
+		acquire_environment_lock
 		mount_stopped
 		;;
 	unmount)
+		acquire_environment_lock
 		unmount_data
 		;;
 	status)

@@ -1,19 +1,38 @@
-$log = "\\host.lan\Data\ssh_setup.log"
-"Starting SSH Setup..." | Out-File $log
+$ErrorActionPreference = 'Stop'
+$capability = 'OpenSSH.Server~~~~0.0.1.0'
+$logDir = Join-Path $env:ProgramData 'AcumaticaLinuxKit'
+New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+Start-Transcript -Path (Join-Path $logDir 'openssh-bootstrap.log') -Append | Out-Null
+
 try {
-    "Installing OpenSSH Server..." | Out-File $log -Append
-    Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 -ErrorAction Stop
-
-    "Starting Service..." | Out-File $log -Append
-    Start-Service sshd
-    Set-Service -Name sshd -StartupType 'Automatic'
-
-    "Configuring Firewall..." | Out-File $log -Append
-    if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue)) {
-        New-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -DisplayName "OpenSSH Server (sshd)" -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+    if ((Get-WindowsCapability -Online -Name $capability).State -ne 'Installed') {
+        $install = Add-WindowsCapability -Online -Name $capability
+        if ($install.RestartNeeded) {
+            throw 'OpenSSH requires a restart. Restart Windows and rerun this script.'
+        }
     }
 
-    "SSH Setup Complete!" | Out-File $log -Append
-} catch {
-    "ERROR: $($_.Exception.Message)" | Out-File $log -Append
+    Set-Service -Name sshd -StartupType Automatic
+    if ((Get-Service -Name sshd).Status -ne 'Running') { Start-Service -Name sshd }
+
+    $rule = 'OpenSSH-Server-In-TCP'
+    if (Get-NetFirewallRule -Name $rule -ErrorAction SilentlyContinue) {
+        Enable-NetFirewallRule -Name $rule
+    } else {
+        $settings = @{
+            Name = $rule
+            DisplayName = 'OpenSSH Server (sshd)'
+            Enabled = 'True'
+            Direction = 'Inbound'
+            Protocol = 'TCP'
+            Action = 'Allow'
+            LocalPort = 22
+        }
+        New-NetFirewallRule @settings | Out-Null
+    }
+
+    if ((Get-Service -Name sshd).Status -ne 'Running') { throw 'OpenSSH service did not start.' }
+    Write-Output 'OpenSSH Server is running.'
+} finally {
+    Stop-Transcript | Out-Null
 }

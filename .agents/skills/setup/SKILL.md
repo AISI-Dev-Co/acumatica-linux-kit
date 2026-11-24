@@ -9,12 +9,12 @@ Load `../environment/SKILL.md` for runtime operations. The environment uses a lo
 
 ## Host and runtime
 
-- Check x86-64 hardware virtualization and `/dev/kvm`, Docker Engine and Compose v2, Bash, Python 3.10+, curl, OpenSSH, util-linux, `iproute2`, procps, CIFS tooling, and the kernel's `ntfs3` support. Check disk capacity and free host RAM against the guest and SQL caps. Use the host's package manager only where a dependency is missing.
+- Check x86-64 hardware virtualization and `/dev/kvm`, a local Docker Engine and Compose v2, Bash, Python 3.10+, curl, OpenSSH, util-linux, `iproute2`, procps, CIFS tooling, and the kernel's `ntfs3` support. Check disk capacity and free host RAM against the guest and SQL caps. Use the host's package manager only where a dependency is missing.
 - Check whether `omarchy-windows`, `mssql`, the local runtime paths, and the configured ports already belong to another stack. Reuse only a matching setup. Do not take over foreign resources.
 - Create private `~/.config/acumatica-runtime` configuration, or honour `ACUMATICA_RUNTIME_DIR`. Use owner-only permission on env and CIFS credentials. Store separate generated Windows and SQL passwords there. Do not print them, pass them on a command line, or add them to Git.
-- In `windows.env` set `VERSION=11`, `USERNAME`, `PASSWORD`, and resource sizes. The exercised configuration uses `CPU_CORES=6`, `RAM_SIZE=12G`, `DISK_SIZE=96G` and `DISK2_SIZE=32G`. Validate capacity rather than raising caps to recover failed startup.
+- In `windows.env` set `VERSION=11`, `DISK_FMT=raw`, `USERNAME`, `PASSWORD`, and resource sizes. The exercised configuration uses `CPU_CORES=6`, `RAM_SIZE=12G`, `DISK_SIZE=96G` and `DISK2_SIZE=32G`. Validate capacity rather than raising caps to recover failed startup.
 - In `mssql.env` set `MSSQL_PID=Developer` for development, `ACCEPT_EULA=Y` only after acceptance, `MSSQL_SA_PASSWORD`, and an appropriate `MSSQL_MEMORY_LIMIT_MB` below the SQL container limit.
-- Render `compose.yml` in that directory from this topology. Replace `<workspace>` with this clone's absolute path, and `<home>` with the operator's home. Create storage directories before Compose. Do not bind console, RDP, SQL, or SMB to a LAN address.
+- Render `compose.yml` in that directory from this topology. Replace `<workspace>` with this clone's absolute path, `<home>` with the operator's home, and `<runtime>` with the local runtime directory. Create storage directories before Compose. Do not bind console, RDP, SQL, or SMB to a LAN address.
 
 ```yaml
 services:
@@ -34,6 +34,7 @@ services:
       - "<home>/.windows:/storage"
       - "<home>/.windows-acumatica-data:/storage2"
       - "<workspace>:/shared"
+      - "<runtime>/oem:/oem:ro"
     network_mode: bridge
     restart: "no"
   mssql:
@@ -53,14 +54,102 @@ volumes:
     name: acumatica-mssql-data
 ```
 
-## First boot and baseline
+## First boot
 
-1. If the baseline does not exist, do not use `acumatica-up.sh` yet. Validate Compose, build `Automation/Setup/windows-runtime.Dockerfile` with the image tag above, then start `mssql` and `windows` through the local Compose file. Do not boot if Linux still has the data image mounted. Poll the guest console at `http://127.0.0.1:8006` until Windows setup is complete. See [Dockur's setup and OEM options](https://github.com/dockur/windows).
-2. From the guest console or OEM first-boot hook, enable Windows OpenSSH using `Automation/Setup/install_ssh.ps1` on the Dockur share. Verify `sshd` actually runs. Set up the workspace link with `Automation/Setup/setup_links.bat`. Verify `C:\Acumatica-ERP\Automation\Setup` resolves to this clone. Run `vm-ensure-bridge.sh` on Linux. Verify `vm-pwsh.sh` can read the Windows hostname and the guest can reach SQL at `172.30.0.1:1433` before opening the wizard.
-3. Identify the dedicated secondary disk by identity and capacity. Initialize GPT and format NTFS only if the disk is new and uninitialised. Assign `D:` without reassigning a live volume. Create `D:\AcumaticaERP` and link `C:\AcumaticaERP` to it. Export `D:\AcumaticaERP` as the `AcumaticaData` SMB share for the local development account. Do not share the root of `D:` or grant anonymous access.
-4. Install the authorized, signed Acumatica MSI for the exact default profile build. Follow the [Acumatica instance creation guide](https://beacon.acumatica.com/r/Installation-Guide/Deploying-Acumatica-ERP-Instances/Instance-Deployment-Creation-of-an-Instance). Configure application, IIS pool, physical path and database to match the default profile, with SQL server `172.30.0.1`. Use a database-scoped runtime login. Complete first-login and licensing requirements. Confirm `Bin\PX.Data.dll` file version and a Windows-local HTTP login response. Do not use a client or production database as the baseline.
-5. On Linux, prepare `AcumaticaERP/` and `~/.local/share/acumatica-data-volume/AcumaticaERP`. Configure operator-mountable `noauto,user,nosuid,nodev` fstab entries: CIFS `//127.0.0.1/AcumaticaData` on the backing `AcumaticaERP` directory with `port=38145` and a private credential file; `ntfs3` loop mount of `~/.windows-acumatica-data/data2.img` on the backing parent with the actual NTFS partition byte offset; bind of the backing `AcumaticaERP` directory to the clone's `AcumaticaERP/`. Use the operator UID/GID and owner-only file modes for the dev share. Derive offset from the GPT start sector times logical sector size. Never use an offset copied from another disk. Use the same Linux account for both lifecycle directions. Use approved elevation to install the fstab entries. Normal lifecycle tries operator mounts first. If the distribution's mount helper requires root, authenticate sudo interactively in the same terminal before using the wrapper's noninteractive fallback. Do not grant broad passwordless sudo. Validate the entries before invoking `acumatica-data-volume.sh mount-running`.
-6. Create the external `n8n_data` Docker volume if absent. The core wrapper checks its existence even when the sidecar is stopped. Start `acumatica-up.sh --core-only` and `acumatica-ready.sh`. Only launch the full n8n stack if needed and port `5678` is restricted to the host and VM. Create the n8n owner locally and keep the account persistent in the volume.
+If the baseline does not exist, bootstrap Windows and SQL before invoking `acumatica-up.sh`. Stage the OEM hook below before starting Compose. Validate the local Compose file, build `Automation/Setup/windows-runtime.Dockerfile` with the tag above, then start `mssql` and `windows` directly. Confirm Linux has not attached or mounted `data2.img` before boot. Use the guest console at `http://127.0.0.1:8006` to monitor first boot. Verify an authenticated SQL query too. A Docker container in Running state is not proof that Windows or SQL is ready.
+
+### Get PowerShell before doing guest work
+
+Before first boot, stage the existing SSH installer outside the clone: copy `Automation/Setup/install_ssh.ps1` to `<runtime>/oem/install_ssh.ps1` and add this `<runtime>/oem/install.bat`. Keep it credential-free.
+
+```bat
+@echo off
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0install_ssh.ps1"
+exit /b %errorlevel%
+```
+
+Bind `<runtime>/oem:/oem:ro` under the Windows service. [The pinned Dockur release](https://github.com/dockur/windows/tree/c7aac1edcf37a69ff730d0b4f073d16580a27763) copies it to `C:\OEM` and runs it at the end of unattended installation. It does not rerun on an already-installed guest. Do not put credentials in the OEM hook or recreate an existing disk to run it.
+
+Once Windows finishes, use the Linux shell:
+
+```sh
+Automation/Setup/vm-ensure-bridge.sh
+Automation/Setup/vm-pwsh.sh '$ErrorActionPreference="Stop"; hostname; whoami; (Get-Service sshd).Status'
+```
+
+Treat those command results as the gate, not the VM console showing a desktop. If SSH never comes up, inspect `C:\ProgramData\AcumaticaLinuxKit\openssh-bootstrap.log` in the console. On an existing guest or after a failed OEM run, use one elevated console or RDP session to launch the copy at `C:\OEM\install_ssh.ps1`, or the copy on the Dockur workspace share. If console input is unreliable, don't type a provisioning script into it. Get an RDP session with clipboard or ask for the single bootstrap action and resume over SSH. Do not claim automated setup if that was required.
+
+After SSH works, use `vm-pwsh.sh` and `vm-scp.sh` for commands and files. Establish `C:\Acumatica-ERP` using the mapping in `Automation/Setup/setup_links.bat`, without its console pause. Verify that it resolves to the clone, and probe SQL from Windows before opening the wizard.
+
+### Enable IIS in the guest
+
+Use an elevated Windows PowerShell session through `vm-pwsh.sh`. For the Windows 11 development guest, enable IIS with these feature IDs. Use the target release's [system environment requirements](https://beacon.acumatica.com/r/Installation-Guide/Preparing-for-Installing-Acumatica-ERP/Preparation-for-the-Acumatica-ERP-Installation-System-Environment) when changing builds. The `45` suffix is the Windows feature identifier, including on systems with ASP.NET 4.8.
+
+```sh
+Automation/Setup/vm-pwsh.sh <<'PS'
+$ErrorActionPreference = 'Stop'
+$user = [Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
+if (!$user.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'The SSH session is not elevated. Use the elevated guest session for this step.'
+}
+$features = @(
+    'IIS-WebServerRole', 'IIS-WebServer', 'IIS-ManagementConsole',
+    'IIS-ManagementScriptingTools', 'IIS-NetFxExtensibility45', 'IIS-ASPNET45',
+    'IIS-ISAPIExtensions', 'IIS-ISAPIFilter', 'IIS-WebSockets',
+    'IIS-DefaultDocument', 'IIS-StaticContent', 'IIS-HttpCompressionDynamic',
+    'IIS-HttpCompressionStatic', 'IIS-RequestFiltering'
+)
+$result = Enable-WindowsOptionalFeature -Online -FeatureName $features -All -NoRestart
+if ($result.RestartNeeded) { throw 'IIS requires a guest reboot before proceeding.' }
+foreach ($feature in $features) {
+    if ((Get-WindowsOptionalFeature -Online -FeatureName $feature).State -ne 'Enabled') {
+        throw "IIS feature not enabled: $feature"
+    }
+}
+Import-Module WebAdministration
+Get-Service WAS, W3SVC
+PS
+```
+
+If servicing requires a reboot, use a controlled guest restart, recheck SSH, and rerun the feature check before installing Acumatica. Verify the installed .NET Framework is at least 4.8. Windows 11 is for development and testing only.
+
+## Put the website on the data disk
+
+1. Use `DISK2_SIZE` and the `/storage2` bind in the Compose topology to make a separate raw `~/.windows-acumatica-data/data2.img`. In Windows use `Get-Disk` and `Get-Partition` to match that dedicated disk by identity and capacity. Reject the boot or system disk. Only initialise and format a verified new RAW disk: GPT → one usable NTFS data partition → drive `D:`. A GPT Microsoft Reserved partition is normal. For an existing disk, verify NTFS and its drive letter without formatting or reassigning a live volume.
+2. Create `D:\AcumaticaERP`. Create a directory junction `C:\AcumaticaERP` → `D:\AcumaticaERP` with `New-Item -ItemType Junction` only if the C path is absent. Do not move files across an existing conflicting path. `C:\Acumatica-ERP` is the separate link to the Linux workspace and is **not** an IIS website. Verify the junction target from Windows before deploying.
+3. Obtain the [official MSI for the default build](https://acumatica-builds.s3.amazonaws.com/builds/26.1/26.101.0225/AcumaticaERP/AcumaticaERPInstall.msi) from Acumatica's build archive. In Windows, verify that `Get-AuthenticodeSignature` reports a valid Acumatica signature, then install as administrator. The MSI installs the Configuration Wizard; it does not deploy the website. In the [Configuration Wizard](https://beacon.acumatica.com/r/Installation-Guide/Deploying-Acumatica-ERP-Instances/Instance-Deployment-Creation-of-an-Instance), deploy a new ERP instance with the settings below. Never deploy into Program Files or the Dockur workspace share.
+
+   | Setting | Value |
+   |---|---|
+   | SQL Server | `172.30.0.1`, SQL Server authentication |
+   | Database | Create `AcumaticaDB`, empty `Company` tenant |
+   | Website database login | Dedicated SQL login for `AcumaticaDB`, not the installer administrator |
+   | Instance and IIS application | `AcumaticaERP` under `Default Web Site` |
+   | Local instance path and IIS physical path | `C:\AcumaticaERP`, resolving to `D:\AcumaticaERP` |
+   | Application pool | Dedicated `AcumaticaERPAppPool`, Integrated, 64-bit |
+
+   After deployment verify `D:\AcumaticaERP\Bin\PX.Data.dll` exists and its file version matches the profile. Verify both IIS physical path and database identity. Stop if the installer puts files on C independently or refuses the junction; do not copy a second site or silently retarget IIS.
+4. Create the `AcumaticaData` SMB share of **`D:\AcumaticaERP` only**, with share and NTFS access for the selected development account. Check SMB availability on the guest's private network and Linux loopback port `38145`. Do not share `D:\` or use anonymous access. The IIS pool needs the permissions for the deployed site; SMB access is not an IIS identity.
+
+## Wire and prove Linux visibility
+
+Create empty backings on Linux at `~/.local/share/acumatica-data-volume/AcumaticaERP` and `<workspace>/AcumaticaERP`. Read the actual byte offset with `(Get-Partition -DriveLetter D).Offset` in Windows and confirm that D is on the secondary disk. Cross-check after shutdown with `sfdisk --json <image>`: the GPT Microsoft basic data partition's start sector times the image's logical sector size must equal that offset. Do not use an offset from another host or mount the entire GPT image as NTFS.
+
+Install three `noauto` fstab entries through approved elevation. Substitute absolute paths, the computed offset, and the operator UID/GID. Store CIFS `username=` and `password=` in a private `0600` file outside the clone. Escape spaces in fstab paths.
+
+```text
+//127.0.0.1/AcumaticaData <volume-root>/AcumaticaERP cifs noauto,user,nosuid,nodev,exec,port=38145,credentials=<private-file>,uid=<uid>,gid=<gid>,forceuid,forcegid,file_mode=0600,dir_mode=0700,cache=none 0 0
+<home>/.windows-acumatica-data/data2.img <volume-root> ntfs3 noauto,user,nosuid,nodev,exec,loop,offset=<bytes>,uid=<uid>,gid=<gid>,umask=0077,windows_names 0 0
+<volume-root>/AcumaticaERP <workspace>/AcumaticaERP none noauto,user,nosuid,nodev,exec,bind 0 0
+```
+
+Use the same Linux account for lifecycle commands. Validate the fstab entries before mounting. If the distribution requires root for a mount helper, authenticate sudo in the same terminal for the wrapper's noninteractive fallback. Do not grant broad passwordless sudo.
+
+1. **Windows running:** run `acumatica-data-volume.sh mount-running`. Check `status` reports the CIFS backing and no raw volume mount. Confirm `AcumaticaERP/Bin/PX.Data.dll` is readable from Linux. Record its SHA-256. Verify the Windows-local login page.
+2. **Windows stopped:** for the first handoff, run `acumatica-data-volume.sh unmount`, shut down the guest cleanly, and verify Compose reports Windows stopped. Cross-check the partition offset before invoking `acumatica-data-volume.sh mount-stopped`. Use `acumatica-down.sh` for later shutdowns. Check `status` reports the `ntfs3` backing and no CIFS mount. Compare the same DLL's SHA-256 from `AcumaticaERP/`. This proves both paths refer to the deployed site, not a copied tree.
+3. **Restart:** create the external `n8n_data` volume if absent. Run `acumatica-up.sh --core-only`, then `acumatica-ready.sh`. Verify the raw NTFS mount is gone, CIFS is back, and the Linux login URL responds. Complete first-login and licensing requirements. Start n8n only when requested and port `5678` is restricted to the host and VM. Keep its owner credentials and persistent volume local.
+
+The CIFS view is for the canonical website. Named instances on `D:\AcumaticaInstances` remain isolated and use the Windows wrappers for inspection while Windows is running. Never mount a guest-owned raw disk on Linux to inspect them.
 
 ## Development and proof
 
