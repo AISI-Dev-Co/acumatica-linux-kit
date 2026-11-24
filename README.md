@@ -28,7 +28,7 @@ This is a disposable local dev box, not a business deployment. Keep dev logins i
 - **SQL Server** keeps its data in a persistent volume. Each Acumatica site has its own database, IIS pool, and website files. The VM and SQL Server are shared.
 - **n8n** is an optional sidecar with its own persistent data. It connects to the default Acumatica site. Ask the agent to bring it up and verify the connection if you're working on an integration. Workflow credentials are configured separately.
 
-For another Acumatica instance, ask your agent to create one for the supported build you need. It can switch between sites, run them side by side, and checkpoint or reset a named test site. See the [runtime](.agents/skills/environment/references/docker-sidecars.md) and [instance](.agents/skills/environment/references/instances.md) skills.
+For another Acumatica instance, ask your agent to create one for the supported build you need. It can switch between sites, run them side by side, and checkpoint or reset a named test site. See the [runtime](.agents/skills/environment/SKILL.md#sql-and-n8n) and [instance](.agents/skills/environment/references/instances.md) skills.
 
 ## When something doesn't fit
 
