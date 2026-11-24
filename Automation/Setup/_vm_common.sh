@@ -19,7 +19,7 @@ runtime_env_value() {
 	printf '%s\n' "$value"
 }
 
-VM_CONTAINER="${VM_CONTAINER:-omarchy-windows}"
+VM_CONTAINER="${VM_CONTAINER:-acumatica-windows}"
 MSSQL_CONTAINER="${MSSQL_CONTAINER:-mssql}"
 N8N_CONTAINER="${N8N_CONTAINER:-n8n}"
 VM_USER="${VM_USER:-$(runtime_env_value "$ACUMATICA_RUNTIME_DIR/windows.env" USERNAME)}"

@@ -9,8 +9,10 @@ Load `../environment/SKILL.md` for runtime operations. The environment uses a lo
 
 ## Host and runtime
 
+No Omarchy or preinstalled Windows VM is required. On a bare Linux host, install Docker Engine and Compose v2 using the [instructions for the detected distribution](https://docs.docker.com/engine/install/). Use the local daemon with KVM device access. Run the setup below to create the guest from the pinned Dockur image, not a distro VM shortcut. This path targets x86-64 Linux. If KVM is unavailable, check firmware virtualization or nested virtualization before proceeding. Do not silently fall back to emulation.
+
 - Check x86-64 hardware virtualization and `/dev/kvm`, a local Docker Engine and Compose v2, Bash, Python 3.10+, curl, OpenSSH, util-linux, `iproute2`, procps, CIFS tooling, and the kernel's `ntfs3` support. Check disk capacity and free host RAM against the guest and SQL caps. Use the host's package manager only where a dependency is missing.
-- Check whether `omarchy-windows`, `mssql`, the local runtime paths, and the configured ports already belong to another stack. Reuse only a matching setup. Do not take over foreign resources.
+- Check whether `acumatica-windows`, `mssql`, the local runtime paths, and the configured ports already belong to another stack. Reuse only a matching setup. Do not take over foreign resources. For a preexisting compatible Dockur stack with a different container name, set `VM_CONTAINER` in the environment for all wrappers and use its actual Compose project and disk paths.
 - Create private `~/.config/acumatica-runtime` configuration, or honour `ACUMATICA_RUNTIME_DIR`. Use owner-only permission on env and CIFS credentials. Store separate generated Windows and SQL passwords there. Do not print them, pass them on a command line, or add them to Git.
 - In `windows.env` set `VERSION=11`, `DISK_FMT=raw`, `USERNAME`, `PASSWORD`, and resource sizes. The exercised configuration uses `CPU_CORES=6`, `RAM_SIZE=12G`, `DISK_SIZE=96G` and `DISK2_SIZE=32G`. Validate capacity rather than raising caps to recover failed startup.
 - In `mssql.env` set `MSSQL_PID=Developer` for development, `ACCEPT_EULA=Y` only after acceptance, `MSSQL_SA_PASSWORD`, and an appropriate `MSSQL_MEMORY_LIMIT_MB` below the SQL container limit.
@@ -20,7 +22,7 @@ Load `../environment/SKILL.md` for runtime operations. The environment uses a lo
 services:
   windows:
     image: acumatica-windows-runtime:2026-08-18
-    container_name: omarchy-windows
+    container_name: acumatica-windows
     env_file: windows.env
     devices:
       - /dev/kvm:/dev/kvm

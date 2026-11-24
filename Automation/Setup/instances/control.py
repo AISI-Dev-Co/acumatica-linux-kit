@@ -20,7 +20,7 @@ class Instances:
         self.profiles = profiles
 
     def running(self) -> bool:
-        result = subprocess.run(["docker", "inspect", os.environ.get("VM_CONTAINER", "omarchy-windows"),
+        result = subprocess.run(["docker", "inspect", os.environ.get("VM_CONTAINER", "acumatica-windows"),
                                  "--format", "{{.State.Running}}"], text=True, capture_output=True, check=True)
         return result.stdout.strip() == "true"
 

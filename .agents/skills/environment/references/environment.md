@@ -1,6 +1,6 @@
 The host workspace is shared to Windows as `C:\Acumatica-ERP`. IIS uses `C:\AcumaticaERP` → `D:\AcumaticaERP`. While Windows owns the NTFS volume, Linux sees `AcumaticaERP/` through the `AcumaticaData` CIFS share. With Windows stopped, Linux can mount the image directly. Never attach the image to both systems. An empty `AcumaticaERP/` → check `Automation/Setup/acumatica-data-volume.sh status` before treating source as missing. Registered clients use isolated trees on the same volume. Follow `instances.md`.
 
-The Windows VM is `omarchy-windows` (`dockurr/windows`). SQL is `mssql` at `172.30.0.1:1433` from the guest. Acumatica is exposed at `http://127.0.0.1:38121/AcumaticaERP`. Optional n8n is at `http://127.0.0.1:5678`. The canonical frontend source is `AcumaticaERP/FrontendSources/`.
+The Windows VM is `acumatica-windows` (`dockurr/windows`). SQL is `mssql` at `172.30.0.1:1433` from the guest. Acumatica is exposed at `http://127.0.0.1:38121/AcumaticaERP`. Optional n8n is at `http://127.0.0.1:5678`. The canonical frontend source is `AcumaticaERP/FrontendSources/`.
 
 Use these wrappers rather than fixed guest addresses:
 
