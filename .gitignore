@@ -1,0 +1,23 @@
+# Local runtime and proprietary assets
+/AcumaticaERP/
+/Files/
+/Automation/Setup/instances/profiles/*.json
+!/Automation/Setup/instances/profiles/default.json
+.env
+.env.*
+*.env
+*.local
+*.local.*
+*.log
+*.msi
+*.iso
+*.img
+*.vhd*
+*.bak
+*.zip
+*.dll
+*.exe
+*.pfx
+*.pem
+__pycache__/
+node_modules/

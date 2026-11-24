@@ -1,0 +1,4 @@
+[
+  { "release": "25r1", "build": "25.101.0153", "ui": "classic" },
+  { "release": "26r1", "build": "26.101.0225", "ui": "modern" }
+]

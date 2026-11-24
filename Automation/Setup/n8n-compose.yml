@@ -1,0 +1,27 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.13.4
+    container_name: n8n
+    restart: "no"
+    stop_grace_period: 2m
+    network_mode: host
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - N8N_PUBLIC_URL=${N8N_PUBLIC_URL:-http://127.0.0.1:5678}
+      - WEBHOOK_URL=${N8N_PUBLIC_URL:-http://127.0.0.1:5678}
+      - N8N_EDITOR_BASE_URL=${N8N_PUBLIC_URL:-http://127.0.0.1:5678}
+      - N8N_PROXY_HOPS=1
+      - ACU_BASE_URL=http://127.0.0.1:38121
+      - ACU_INSTANCE_NAME=AcumaticaERP
+      - ACUMATICA_BASE_URL=http://127.0.0.1:38121/AcumaticaERP
+    volumes:
+      - n8n_data:/home/node/.n8n
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  n8n_data:
+    external: true

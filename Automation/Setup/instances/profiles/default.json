@@ -1,0 +1,11 @@
+{
+  "id": "default",
+  "application": "AcumaticaERP",
+  "pool": "AcumaticaERPAppPool",
+  "path": "C:\\AcumaticaERP",
+  "database": "AcumaticaDB",
+  "build": "26.101.0225",
+  "installerRoot": "C:\\AcumaticaBuilds\\26.101.0225\\Acumatica ERP",
+  "protected": true,
+  "packages": []
+}

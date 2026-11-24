@@ -1,0 +1,14 @@
+- For a new clone, load `.agents/skills/setup/SKILL.md` and carry out setup. Report only verified results and blockers that need the user.
+- Use one-shot checks. Never start or watch a development server.
+- Keep repo-owned artifacts in tracked development areas, never the repository root.
+- Keep operational knowledge agent-facing and SOP-terse. Write human runbooks only when requested.
+- Do not commit exploratory edits in Acumatica runtime or product source without explicit approval.
+- Maintain project skills in place under applicable skill-authoring guidance. Treat nested `AGENTS.md` files as living docs: update them when they become stale, misleading, or concrete local evidence would make them better.
+- Add nested `AGENTS.md` only for a verified recurring local constraint. Do not pre-seed one.
+
+- Treat `AcumaticaERP/` as the canonical website tree. Never mount the NTFS image on Linux and Windows concurrently. Keep registered sites, IIS pools, and databases isolated. Never copy the live canonical site as a deployment shortcut.
+- Keep extension source, scripts, and release artifacts separate from the runtime. Use the shared package builder for manifest-based packages.
+- Use `Automation/Setup/acumatica-up.sh` and `acumatica-down.sh` for the complete runtime. With VM and SQL already running, use `acumatica-ready.sh` to warm and expose the canonical site only.
+- Resolve the target build and website from its registered instance profile before product work. Inspect only that website's `App_Data/CodeRepository/`, `Pages/`, and `FrontendSources/`; `AcumaticaERP/` is the canonical 26R1 tree, not a reference for 25R1. Skip `App_Data/TsGeneration/` unless the task requires it.
+- Use `Automation/Setup/` for environment, VM, and n8n operations.
+- Run frontend lint, tests, and type checks from the selected instance's `FrontendSources/`. Run `Automation/Setup/run-acuminator.sh <target.csproj-or.sln>` for Acuminator.

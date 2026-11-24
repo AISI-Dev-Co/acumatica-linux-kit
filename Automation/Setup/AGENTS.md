@@ -1,0 +1,7 @@
+- Keep environment, VM, packaging wrappers, and helper scripts here. Do not put extension source, workflow exports, or product docs here.
+- Scripts are one-shot. `acumatica-up.sh` is the full-runtime entrypoint. Lower-level launchers stay idempotent and report readiness only after an end-to-end probe.
+- Route Windows through `vm-pwsh.sh`, `vm-ssh.sh`, `vm-scp.sh`, and related helpers. Keep the repo-owned `windows-runtime.Dockerfile` image able to recreate its SSH and bridge tooling.
+- `acumatica-data-volume.sh` owns NTFS handoff. Runtime wrappers unmount Linux before Windows starts and restore Linux after Windows stops. Never bypass it.
+- Keep the environment lock in the operation owner. Close its descriptor in detached host processes before they outlive the operation.
+- Start Acuminator through `run-acuminator.sh`.
+- Prefer supported package and API flows over database hacks. Mark necessary cleanup or repair scripts as dev-local.
