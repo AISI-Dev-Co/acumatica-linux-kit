@@ -1,5 +1,0 @@
-Keep a package's source, package scripts, n8n assets, and release ZIP in its standalone subrepository. Use one source of truth and namespace files by extension. Typical owned directories are `DAC/`, `Graph/`, `Helper/` or `App_RuntimeCode/`, `FrontendSources/`, `_project/`, `sql/`, `scripts/`, and optional `n8n/`.
-
-`_project/` is shipped customization metadata. `sql/` is its review companion. Build through Acumatica's customization path and package script. Never hand-stage ZIP contents. Keep n8n workflows credential-based, UI-importable, and one JSON object each. Exclude environment fixes, probes, temporary shims, duplicate trees, and breadcrumb comments from a deliverable. Isolate a required compatibility workaround from production extension source.
-
-Before handoff, run the smallest backend or package build, triage Acuminator, audit C# ↔ TS ↔ HTML bindings when relevant, confirm the ZIP has expected modern paths and no accidental ASPX or template shims, and parse/import included n8n JSON.

@@ -3,7 +3,7 @@
 - Keep repo-owned artifacts in tracked development areas, never the repository root.
 - Keep operational knowledge agent-facing and SOP-terse. Write human runbooks only when requested.
 - Do not commit exploratory edits in Acumatica runtime or product source without explicit approval.
-- Maintain project skills in place under applicable skill-authoring guidance. Treat nested `AGENTS.md` files as living docs: update them when they become stale, misleading, or concrete local evidence would make them better.
+- Maintain project skills in place under applicable skill-authoring guidance. Keep small skills self-contained. Split long, conditional procedures into references. Treat nested `AGENTS.md` files as living docs: update them when they become stale, misleading, or concrete local evidence would make them better.
 - Add nested `AGENTS.md` only for a verified recurring local constraint. Do not pre-seed one.
 
 - Treat `AcumaticaERP/` as the canonical website tree. Never mount the NTFS image on Linux and Windows concurrently. Keep registered sites, IIS pools, and databases isolated. Never copy the live canonical site as a deployment shortcut.
