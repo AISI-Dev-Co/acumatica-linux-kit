@@ -39,6 +39,8 @@ class Instances:
         print(f"Stopped {profile.id}", flush=True)
 
     def ready(self, profile: Profile, port: int = 38121) -> None:
+        if profile.id == "default":
+            self.guest.powershell(r"& 'C:\Acumatica-ERP\Automation\Setup\check-acumatica-sql.ps1'")
         self.guest.command("vm-web-expose.sh", str(port), capture=True)
         try:
             self.guest.call("start", profile=profile.wire())

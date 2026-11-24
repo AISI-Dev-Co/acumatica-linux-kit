@@ -86,18 +86,6 @@ guest_sql_ready() {
 	"$SCRIPT_DIR/vm-pwsh.sh" "\$client=New-Object Net.Sockets.TcpClient; try { \$ar=\$client.BeginConnect(\"$VM_SQL_BRIDGE_IP\",$VM_SQL_BRIDGE_PORT,\$null,\$null); \$ok=\$ar.AsyncWaitHandle.WaitOne(5000); if(\$ok){\$client.EndConnect(\$ar)}; if(-not \$ok){exit 1} } finally {\$client.Close()}"
 }
 
-n8n_reaches_acumatica() {
-	docker exec "$N8N_CONTAINER" node -e '
-		const http = require("http");
-		const req = http.get("http://127.0.0.1:38121/AcumaticaERP/Frames/BrowserWarning.aspx", res => {
-			res.resume();
-			res.on("end", () => process.exit(res.statusCode === 200 ? 0 : 1));
-		});
-		req.setTimeout(5000, () => req.destroy(new Error("timeout")));
-		req.on("error", () => process.exit(1));
-	'
-}
-
 stage="preflight"
 [[ -r "$ACUMATICA_RUNTIME_COMPOSE" ]] || fail "runtime compose file not found: $ACUMATICA_RUNTIME_COMPOSE"
 required_env "$ACUMATICA_RUNTIME_DIR/windows.env" USERNAME
@@ -114,7 +102,6 @@ if docker compose -f "$ACUMATICA_RUNTIME_COMPOSE" config --images | grep -Fxq "$
 	docker build -f "$WINDOWS_RUNTIME_DOCKERFILE" -t "$WINDOWS_RUNTIME_IMAGE" "$SCRIPT_DIR/../.."
 fi
 docker volume inspect acumatica-mssql-data >/dev/null 2>&1 || fail "required Docker volume is missing: acumatica-mssql-data"
-docker volume inspect n8n_data >/dev/null 2>&1 || fail "required Docker volume is missing: n8n_data"
 
 if ! windows_owns_data; then
 	stage="Acumatica data volume handoff to Windows"
@@ -122,23 +109,24 @@ if ! windows_owns_data; then
 fi
 
 stage="core container startup"
-printf '[1/7] Starting Windows VM and SQL Server\n'
+printf '[1/6] Starting Windows VM and SQL Server\n'
 timeout --foreground "$CORE_START_TIMEOUT_SECONDS" docker compose -f "$ACUMATICA_RUNTIME_COMPOSE" up -d "$MSSQL_SERVICE" "$WINDOWS_SERVICE"
 wait_until 60 2 "SQL container running" container_running "$MSSQL_CONTAINER"
 wait_until 60 2 "Windows VM container running" container_running "$VM_CONTAINER"
 
 stage="SQL readiness"
-printf '[2/7] Waiting for SQL Server\n'
+printf '[2/6] Waiting for SQL Server\n'
 wait_until "$MSSQL_TIMEOUT_SECONDS" 3 "authenticated SQL query" mssql_ready
 
 stage="VM bridge setup"
-printf '[3/7] Configuring VM bridges\n'
+printf '[3/6] Configuring VM bridges\n'
 "$SCRIPT_DIR/vm-ensure-bridge.sh"
 
 stage="Windows guest readiness"
-printf '[4/7] Waiting for Windows guest and SQL route\n'
+printf '[4/6] Waiting for Windows guest and SQL route\n'
 wait_until "$VM_TIMEOUT_SECONDS" 5 "Windows SSH" guest_ssh_ready
 wait_until "$GUEST_SQL_TIMEOUT_SECONDS" 3 "Windows-to-SQL TCP" guest_sql_ready
+stage="Windows data share"
 "$SCRIPT_DIR/vm-pwsh.sh" '$ErrorActionPreference="Stop"; $root="D:\AcumaticaERP"; if(-not (Test-Path $root -PathType Container)){throw "Acumatica data volume is unavailable: $root"}; $link=Get-Item C:\AcumaticaERP -Force; if([string]($link.Target -join ";") -ne $root){throw "C:\AcumaticaERP does not target $root"}; $share=Get-SmbShare -Name AcumaticaData -ErrorAction Stop; if($share.Path -ne $root){throw "AcumaticaData share targets $($share.Path) instead of $root"}'
 "$DATA_VOLUME_SCRIPT" mount-running
 
@@ -149,16 +137,12 @@ if [[ "$CORE_ONLY" == true ]]; then
 fi
 
 stage="Acumatica readiness"
-printf '[5/7] Starting IIS and warming Acumatica\n'
+printf '[5/6] Starting IIS and warming Acumatica\n'
 "$SCRIPT_DIR/acumatica-ready.sh" 38121
 
 stage="n8n readiness"
-printf '[6/7] Starting n8n\n'
+printf '[6/6] Starting n8n\n'
 "$SCRIPT_DIR/n8n-up.sh"
-
-stage="cross-service verification"
-printf '[7/7] Verifying n8n to Acumatica\n'
-wait_until 60 3 "n8n-to-Acumatica HTTP" n8n_reaches_acumatica
 
 trap - EXIT
 printf '\nEnvironment ready in %ss\n' "$((SECONDS - started))"

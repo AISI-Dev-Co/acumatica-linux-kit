@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_vm_common.sh"
 
 require_host_bin docker
-require_host_bin python
+require_host_bin python3
 require_running_container "$VM_CONTAINER"
 ensure_container_bins ssh sshpass
 
@@ -18,7 +18,7 @@ fi
 ps_script="\$ProgressPreference='SilentlyContinue'; \$InformationPreference='SilentlyContinue'; $ps_script"
 
 encoded="$(
-	python - "$ps_script" <<'PY'
+	python3 - "$ps_script" <<'PY'
 import base64
 import sys
 

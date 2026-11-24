@@ -18,7 +18,9 @@ The [setup skill](.agents/skills/setup/SKILL.md) is for the agent. You don't nee
 - Permission to set up Docker Engine with Compose and configure local mounts.
 - Authorised Windows and Acumatica access. The kit doesn't ship installers, VM images, or licences.
 
-No Omarchy or existing Windows VM required. The kit uses Dockur to create the guest. Windows owns the Acumatica data disk while it's running. Linux reads the site over a local share, then can mount the disk directly once Windows is stopped.
+The kit uses Dockur to create the Windows guest. Windows owns the Acumatica data disk while it's running. Linux reads the site over a local share, then can mount the disk directly once Windows is stopped.
+
+This is a disposable local dev box, not a business deployment. Keep dev logins in ordinary local files the agent can read. No vault required. For business use, bring your own credential management and runtime configuration. Never reuse the dev logins.
 
 ## What runs together
 

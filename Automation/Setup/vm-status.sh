@@ -14,7 +14,7 @@ printf 'Acumatica data:\n'
 printf '\n'
 
 printf '%-18s %-10s %s\n' CONTAINER STATUS IMAGE
-for container in "$VM_CONTAINER" "$MSSQL_CONTAINER" "$N8N_CONTAINER"; do
+for container in "$VM_CONTAINER" "$MSSQL_CONTAINER"; do
 	if docker inspect "$container" >/dev/null 2>&1; then
 		docker inspect "$container" --format '{{printf "%-18s %-10s %s" .Name .State.Status .Config.Image}}'
 		[[ "$(docker inspect "$container" --format '{{.State.Running}}')" == true ]] || healthy=false
@@ -33,24 +33,18 @@ if [[ "$(docker inspect "$VM_CONTAINER" --format '{{.State.Running}}' 2>/dev/nul
 	if ! timeout --foreground 30 "$SCRIPT_DIR/vm-pwsh.sh" '
 $ErrorActionPreference="Stop"
 Import-Module WebAdministration
-function Test-Tcp($HostName, $Port) {
-	$client=New-Object Net.Sockets.TcpClient
-	try { $ar=$client.BeginConnect($HostName,$Port,$null,$null); $ok=$ar.AsyncWaitHandle.WaitOne(5000); if($ok){$client.EndConnect($ar)}; return $ok }
-	finally { $client.Close() }
-}
 $was=(Get-Service WAS).Status
 $w3svc=(Get-Service W3SVC).Status
 $pool=(Get-WebAppPoolState AcumaticaERPAppPool).Value
-$sql=Test-Tcp "172.30.0.1" 1433
-$n8n=Test-Tcp "172.30.0.1" 5678
 Write-Output ("WAS="+$was)
 Write-Output ("W3SVC="+$w3svc)
 Write-Output ("Pool="+$pool)
-Write-Output ("SQLTcp="+$sql)
-Write-Output ("N8nTcp="+$n8n)
-if ($was -ne "Running" -or $w3svc -ne "Running" -or $pool -ne "Started" -or -not $sql -or -not $n8n) { throw "Windows runtime check failed" }
+if ($was -ne "Running" -or $w3svc -ne "Running" -or $pool -ne "Started") { throw "Windows runtime check failed" }
 '; then
 		printf 'Windows service/connectivity probe failed\n' >&2
+		healthy=false
+	fi
+	if ! timeout --foreground 25 "$SCRIPT_DIR/vm-pwsh.sh" <"$SCRIPT_DIR/check-acumatica-sql.ps1"; then
 		healthy=false
 	fi
 	printf '\nVM bridge listeners:\n'
@@ -64,7 +58,9 @@ else
 	printf 'Acumatica=unreachable\n'
 	healthy=false
 fi
-if curl -fsS --max-time 10 http://127.0.0.1:5678/healthz | grep -Fq '"status":"ok"'; then
+if [[ "$(docker inspect "$N8N_CONTAINER" --format '{{.State.Running}}' 2>/dev/null)" != true ]]; then
+	printf 'n8n=stopped (optional)\n'
+elif curl -fsS --max-time 10 http://127.0.0.1:5678/healthz | grep -Fq '"status":"ok"'; then
 	printf 'n8n=ready\n'
 else
 	printf 'n8n=unreachable\n'
