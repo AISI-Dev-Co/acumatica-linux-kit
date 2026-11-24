@@ -2,13 +2,15 @@
 
 Develop Acumatica customizations from Linux. Keep your editor, Git checkout, browser, and coding agent on Linux. A local Windows VM runs Acumatica, IIS, and the Windows build tools.
 
+Setup mounts the installed Acumatica site at `AcumaticaERP/` inside the agent's working folder. The agent can search the exact build's C# source, pages, and UI files with its usual tools, right next to your customization code. This is the same site IIS serves, not a copy checked into Git. Use the product files as a reference and make changes in your customization.
+
 The kit gives your agent the setup playbook and tools to find the code behind a screen, build a customization ZIP, run Acuminator, and test changes on a separate Acumatica site without disturbing your main dev instance.
 
 ## Send in the agent
 
 Clone the repo, open it with your coding agent, and give it this:
 
-> Set up Acumatica on this machine. Read AGENTS.md and the setup skill, then do the work instead of giving me a checklist. Reuse a compatible setup if there is one. Troubleshoot what you can, ask me for access or approval when needed, and verify that I can open the dev site and read its source from Linux. Tell me what worked and what's still blocked.
+> Set up Acumatica on this machine. Read AGENTS.md and the setup skill, then do the work instead of giving me a checklist. Reuse a compatible setup if there is one. Troubleshoot what you can, ask me for access or approval when needed, and verify that I can open the dev site and that its source is readable under AcumaticaERP/ in this workspace. Tell me what worked and what's still blocked.
 
 The [setup skill](.agents/skills/setup/SKILL.md) is for the agent. You don't need to memorise the right IIS checkboxes or type a PowerShell script into a VM console. If Windows needs a restart, a licence needs accepting, or the agent can't get past the guest console, it should tell you exactly where it got stuck and what it needs from you.
 
