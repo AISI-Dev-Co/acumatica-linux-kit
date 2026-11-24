@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 $ErrorActionPreference = 'Stop'
 $capability = 'OpenSSH.Server~~~~0.0.1.0'
 $logDir = Join-Path $env:ProgramData 'AcumaticaLinuxKit'

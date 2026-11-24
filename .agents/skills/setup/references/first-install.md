@@ -54,7 +54,7 @@ If the baseline does not exist, bootstrap Windows and SQL before invoking `acuma
 
 ### Get PowerShell before doing guest work
 
-Before first boot, stage the existing SSH installer outside the clone: copy `Automation/Setup/install_ssh.ps1` to `<runtime>/oem/install_ssh.ps1` and add this `<runtime>/oem/install.bat`. Keep it credential-free.
+Before first boot, stage the existing SSH installer outside the clone: copy `Automation/Setup/install_ssh.ps1` to `<runtime>/oem/install_ssh.ps1` and add this `<runtime>/oem/install.bat`. Keep it credential-free. The installer requires administrator rights. This is separate from the SSH session elevation check before IIS.
 
 ```bat
 @echo off
@@ -121,7 +121,8 @@ If servicing requires a reboot, use a controlled guest restart, recheck SSH, and
    | Instance and IIS application | `AcumaticaERP` under `Default Web Site` |
    | Local instance path and IIS physical path | `C:\AcumaticaERP`, resolving to `D:\AcumaticaERP` |
    | Application pool | Dedicated `AcumaticaERPAppPool`, Integrated, 64-bit |
-   | Node.js | Install the Windows runtime for this build or select an existing compatible installation |
+
+   Node.js is required in the guest. Use the Wizard's **Install Node.js** option when offered. Otherwise install or reuse the version required by the selected build and set `NodeJs:NodeJsPath` in the deployed site's `web.config` to its installation directory.
 
    After deployment verify `D:\AcumaticaERP\Bin\PX.Data.dll` exists and its file version matches the profile. Verify IIS physical path. Run `Automation/Setup/vm-pwsh.sh < Automation/Setup/check-acumatica-sql.ps1` from Linux to prove Windows can query `AcumaticaDB` using the deployed site login. Also read `NodeJs:NodeJsPath` from the canonical `web.config` and run that directory's `node.exe --version` in Windows. Named sites borrow this runtime even if they use the Classic UI. Stop if the installer puts files on C independently or refuses the junction; do not copy a second site or silently retarget IIS.
 4. From Linux, run the share helper with the elevated Windows dev account you'll use for CIFS. It creates the share only for `D:\AcumaticaERP`, grants that account access, and adds an SMB firewall rule scoped to the Dockur and Docker bridge gateways. Do not enable the general File and Printer Sharing firewall group.

@@ -47,8 +47,8 @@ if ($was -ne "Running" -or $w3svc -ne "Running" -or $pool -ne "Started") { throw
 	if ! timeout --foreground 25 "$SCRIPT_DIR/vm-pwsh.sh" <"$SCRIPT_DIR/check-acumatica-sql.ps1"; then
 		healthy=false
 	fi
-	printf '\nVM bridge listeners:\n'
-	docker exec "$VM_CONTAINER" sh -lc 'ss -H -ltnp | grep -E ":(2222|1433|5678|8080)\\b" || true'
+	printf '\nVM container bridge listeners:\n'
+	docker exec "$VM_CONTAINER" sh -lc 'ss -H -ltnp | grep -E ":(2222|1433|8080)\\b" || true'
 fi
 
 printf '\nHost HTTP:\n'
