@@ -9,9 +9,9 @@ Load `../environment/SKILL.md` for runtime operations. The environment uses a lo
 
 ## Host and runtime
 
-No Omarchy or preinstalled Windows VM is required. On a bare Linux host, install Docker Engine and Compose v2 using the [instructions for the detected distribution](https://docs.docker.com/engine/install/). Use the local daemon with KVM device access. Run the setup below to create the guest from the pinned Dockur image, not a distro VM shortcut. This path targets x86-64 Linux. If KVM is unavailable, check firmware virtualization or nested virtualization before proceeding. Do not silently fall back to emulation.
+No Omarchy or preinstalled Windows VM is required. On a bare Linux host, install Docker Engine and Compose v2 using the [instructions for the detected distribution](https://docs.docker.com/engine/install/). Use the local daemon with KVM device access. Run the setup below to create the guest from the pinned Dockur image, not a distro VM shortcut. Preserve Dockur's NAT networking; the wrappers depend on its `172.30.0.1` guest gateway. If the Docker bridge already occupies `172.30.0.0/16`, stop and resolve the conflict before deploying Acumatica. This path targets x86-64 Linux. If KVM is unavailable, check firmware virtualization or nested virtualization before proceeding. Do not silently fall back to emulation.
 
-- Check x86-64 hardware virtualization and `/dev/kvm`, a local Docker Engine and Compose v2, Bash, Python 3.10+, curl, OpenSSH, util-linux, `iproute2`, procps, CIFS tooling, and the kernel's `ntfs3` support. Check disk capacity and free host RAM against the guest and SQL caps. Use the host's package manager only where a dependency is missing.
+- Check x86-64 hardware virtualization with `/dev/kvm` and `/dev/net/tun`, a local Docker Engine and Compose v2, Bash, Python 3.10+, curl, OpenSSH, util-linux, `iproute2`, procps, CIFS tooling, and the kernel's `ntfs3` support. Check disk capacity and free host RAM against the guest and SQL caps. Use the host's package manager only where a dependency is missing.
 - Check whether `acumatica-windows`, `mssql`, the local runtime paths, and the configured ports already belong to another stack. Reuse only a matching setup. Do not take over foreign resources. For a preexisting compatible Dockur stack with a different container name, set `VM_CONTAINER` in the environment for all wrappers and use its actual Compose project and disk paths.
 - Create private `~/.config/acumatica-runtime` configuration, or honour `ACUMATICA_RUNTIME_DIR`. Use owner-only permission on env and CIFS credentials. Store separate generated Windows and SQL passwords there. Do not print them, pass them on a command line, or add them to Git.
 - In `windows.env` set `VERSION=11`, `DISK_FMT=raw`, `USERNAME`, `PASSWORD`, and resource sizes. The exercised configuration uses `CPU_CORES=6`, `RAM_SIZE=12G`, `DISK_SIZE=96G` and `DISK2_SIZE=32G`. Validate capacity rather than raising caps to recover failed startup.
@@ -26,7 +26,9 @@ services:
     env_file: windows.env
     devices:
       - /dev/kvm:/dev/kvm
+      - /dev/net/tun:/dev/net/tun
     cap_add: [NET_ADMIN]
+    stop_grace_period: 2m
     ports:
       - "127.0.0.1:8006:8006"
       - "127.0.0.1:3389:3389/tcp"
