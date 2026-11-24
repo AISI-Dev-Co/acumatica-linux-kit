@@ -29,6 +29,11 @@ EXIT_STATUS = {
     4: "runtime-error",
 }
 DEFAULT_CODE_SOURCE_ALIASES = {"repo", "coderepository", "default", "."}
+RUNNER_VERSION = "4.0.1"
+RUNNER_DOWNLOAD_URL = (
+    f"https://github.com/Acumatica/Acuminator/releases/download/v{RUNNER_VERSION}/Acuminator.Runner.NetFramework.zip"
+)
+RUNNER_INSTALL_ACTION = f"Download and extract the Windows console runner: {RUNNER_DOWNLOAD_URL}"
 
 LINE_PREFIX_RE = re.compile(
     r'^(?:\[(?P<severity>[^\]]+)\]\s+)?(?P<diagnostic_id>[^:]+):\s(?P<rest>.+)$'
@@ -354,6 +359,7 @@ def describe_payload() -> dict[str, Any]:
                 },
             },
         },
+        "recommendedRunner": {"version": RUNNER_VERSION, "downloadUrl": RUNNER_DOWNLOAD_URL},
         "runnerDiscovery": [
             "--runner",
             "ACUMINATOR_RUNNER",
@@ -546,7 +552,7 @@ def build_failure_guidance(code_source: Path, output_text: str, msbuild_path: Pa
 
     if "could not find acuminator.runner.netframework.exe" in normalized_output:
         summary = "The wrapper could not find the Acuminator runner executable."
-        next_actions.append("Build Acuminator.Runner.NetFramework.csproj or set ACUMINATOR_RUNNER.")
+        next_actions.extend([RUNNER_INSTALL_ACTION, "Pass --runner with the Windows executable path."])
 
     elif "no project in the provided" in normalized_output and "references the acumatica framework" in normalized_output:
         summary = "The target loaded, but it is not an Acumatica code source for Acuminator analysis."
@@ -635,8 +641,8 @@ def analyze(args: argparse.Namespace) -> int:
                 "guidance": {
                     "summary": "The Acuminator runner has not been located yet.",
                     "nextActions": [
-                        "Build Acuminator.Runner.NetFramework.csproj.",
-                        "Set ACUMINATOR_RUNNER or pass --runner if the executable lives outside the default build output.",
+                        RUNNER_INSTALL_ACTION,
+                        "Pass --runner with the Windows executable path, or set ACUMINATOR_RUNNER on the guest.",
                     ],
                 },
                 "codeSource": str(code_source),

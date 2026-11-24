@@ -90,7 +90,7 @@ Automation/Setup/vm-pwsh.sh '$ErrorActionPreference="Stop"; hostname; whoami; (G
 
 Treat those command results as the gate, not the VM console showing a desktop. If SSH never comes up, inspect `C:\ProgramData\AcumaticaLinuxKit\openssh-bootstrap.log` in the console. On an existing guest or after a failed OEM run, use one elevated console or RDP session to launch the copy at `C:\OEM\install_ssh.ps1`, or the copy on the Dockur workspace share. If console input is unreliable, don't type a provisioning script into it. Get an RDP session with clipboard or ask for the single bootstrap action and resume over SSH. Do not claim automated setup if that was required.
 
-After SSH works, use `vm-pwsh.sh` and `vm-scp.sh` for commands and files. Establish `C:\Acumatica-ERP` using the mapping in `Automation/Setup/setup_links.bat`, without its console pause. Verify that it resolves to the clone, and probe SQL from Windows before opening the wizard.
+After SSH works, use `vm-pwsh.sh` and `vm-scp.sh` for commands and files. Run `Automation/Setup/vm-pwsh.sh < Automation/Setup/setup_links.ps1` to establish and verify `C:\Acumatica-ERP`. The script reuses the correct link, refuses to replace a conflicting path, and leaves Windows symlink policy unchanged. Probe SQL from Windows before opening the wizard.
 
 ### Enable IIS in the guest
 
@@ -173,7 +173,7 @@ The CIFS view is for the canonical website. Named instances on `D:\AcumaticaInst
 
 Use the live check at each handoff to decide whether to proceed. If a check fails, diagnose that boundary before retrying the stack.
 
-- Prepare .NET SDK, the project's target framework developer pack, and compatible MSBuild in Windows. Use Python 3.10+ in Windows for the Acuminator adapter. Use the official [Acuminator runner release](https://github.com/Acumatica/Acuminator/releases), extract the full archive in the guest, and pass `--runner <guest-path>` to `run-acuminator.sh`. Install frontend project dependencies only when needed, using the selected site's requirements.
+- Prepare .NET SDK, the project's target framework developer pack, and compatible MSBuild in Windows. Use Python 3.10+ in Windows for the Acuminator adapter. Install the pinned Windows console runner using the applicable analysis skill. Install frontend project dependencies only when needed, using the selected site's requirements.
 - Confirm the canonical URL, installed build and IIS path. Run `acumatica-instance.sh status` and distinguish absent sites from unreachable SQL or IIS. Confirm `AcumaticaERP/App_Data/CodeRepository/` is present when source inspection is needed. Use the selected site's frontend checks, package builder, and Acuminator against a real requested project. Do not publish an invented package to prove setup.
 - For customization work, create a named disposable instance with a supported build and checkpoint before publishing. Do not apply product upgrades or migrate customer data during setup.
 - Report the site URL, exact build, SSH and mount checks, which development tools were verified, and any user-only blocker. For later startup and shutdown, use the environment skill. A successful Compose start alone is not readiness.

@@ -17,6 +17,6 @@ Suppress only intentional code with a narrow reason:
 
 After an Acumatica upgrade, rebuild each customization against target assemblies and analyze the rebuilt project's source. A successful analysis verifies that the runner analyzed that target. It does not verify runtime compatibility. Run the relevant publish and behavior checks separately. A changed ERP version alone does not require an Acuminator update.
 
-If the runner is absent or stale, set `ACUMINATOR_RUNNER` or rebuild it. Use the wrapper for CodeRepository NuGet failures. Start the runtime for VM-backed analysis. Treat no Acumatica Platform reference as expected only for unrelated test code.
+On first setup, run `Automation/Setup/run-acuminator.sh describe` and use `recommendedRunner.downloadUrl`. Extract the complete official Console Runner archive in Windows. Pass `--runner <path to Acuminator.Runner.NetFramework.exe in Windows>` to the wrapper. No source checkout or rebuild needed. When changing the runner version, update the wrapper's pin and any affected flags or report parsing together. Verify the new runner through the wrapper against a real customization project. Use the wrapper for CodeRepository NuGet failures. Start the runtime for VM-backed analysis. Treat no Acumatica Platform reference as expected only for unrelated test code.
 
 Report the target, status and exit code, severity and PX-ID counts, highest-signal files, decisions, and rerun command.
