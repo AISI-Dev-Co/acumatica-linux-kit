@@ -7,6 +7,12 @@ Run setup from the clone. Do not hand the user the checklist. Inspect first, reu
 
 Load `../environment/SKILL.md` for runtime operations. The environment uses a local Dockur Windows guest, Linux MSSQL container, and a dedicated NTFS data disk. The protected baseline is the build in `Automation/Setup/instances/profiles/default.json`. Use `acumatica-instance.sh` for additional sites after the baseline is ready.
 
+## Adapt and report
+
+Treat the supplied files as a starting point. If a command or default doesn't fit the host, inspect the failure and the relevant upstream documentation. Make the smallest local change that fixes it, then rerun the live check that failed. Preserve instance isolation and the NTFS ownership handoff. Don't work around a failure by wiping data or disabling safeguards.
+
+For a reproducible kit defect or portability gap, prefer updating an existing issue or filing one at [AISI-Dev-Co/acumatica-linux-kit](https://github.com/AISI-Dev-Co/acumatica-linux-kit/issues). Include the kit revision, Linux distro, failed setup stage, sanitised error, and what you changed or verified. Don't post credentials, customer data, or unreviewed logs. If you can't post, leave an issue-ready summary for the user. Don't pitch a one-off local override as a kit bug.
+
 ## Host and runtime
 
 No Omarchy or preinstalled Windows VM is required. On a bare Linux host, install Docker Engine and Compose v2 using the [instructions for the detected distribution](https://docs.docker.com/engine/install/). Use the local daemon with KVM device access. Run the setup below to create the guest from the pinned Dockur image, not a distro VM shortcut. Preserve Dockur's NAT networking; the wrappers depend on its `172.30.0.1` guest gateway. If the Docker bridge already occupies `172.30.0.0/16`, stop and resolve the conflict before deploying Acumatica. This path targets x86-64 Linux. If KVM is unavailable, check firmware virtualization or nested virtualization before proceeding. Do not silently fall back to emulation.
